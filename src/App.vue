@@ -129,7 +129,7 @@
                     <div class="btn" v-if="file_tab">{{ i18n('Выбрать PDF-газету') }}</div>
                     <input
                         type="url"
-                        v-model.lazy="pdf_link"
+                        v-model="pdf_link"
                         class="newspaper-link"
                         v-else
                         placeholder="https://example-newspaper.com/..."
@@ -219,7 +219,8 @@
                                     class="newspaper-link warn-border"
                                     :placeholder="i18n('Введите ссылку на источник')"
                                     type="url"
-                                    v-model="new_source.resource_url"
+                                    @change="onchage_new_resource_url"
+                                    :value="new_source.resource_url"
                                 />
                                 <span class="warning">{{ i18n('Убедитесь, что ссылка на источник правильная') }}</span>
                             </div>
@@ -663,14 +664,8 @@ export default {
                     this.spinner = false;
                 });
         },
-    },
-    computed: {
-        hasFiles() {
-            return this.files.length != 0;
-        },
-    },
-    watch: {
-        pdf_link(newValue) {
+        onchage_new_resource_url(event) {
+            let newValue = event?.target?.value || '';
             if (newValue) {
                 const regex = /^((https|http):\/\/[^/]+)/; // https://www.domain.com/url=fds
                 let domain_name = newValue.trim().match(regex)[1];
@@ -690,8 +685,14 @@ export default {
             }
         },
     },
+    computed: {
+        hasFiles() {
+            return this.files.length != 0;
+        },
+    },
     mounted() {
         this.getProjectNames();
+        this.getResourceData('');
         console.log(this.resource_data);
     },
 };
