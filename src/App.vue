@@ -356,6 +356,30 @@
                 {{ i18n('Добавить') }}
             </button>
         </form>
+        <div v-if="addedNewsPapers.length !== 0" class="addedPapers">
+          <div style="display: flex; justify-content: space-between; width: 350px">
+            <div style="width: 73px; min-width: 73px">
+              Id
+            </div>
+            <div style="width: 250px;">
+              Ссылка
+            </div>
+            <div style="width: 70px;">
+              Статус
+            </div>
+          </div>
+          <div v-for="item in addedNewsPapers" :key="item.poll_id"  style="display: flex; margin-bottom: 15px; justify-content: space-between; width: 350px">
+            <div style="width: 50px;">
+              {{ item.poll_id }}
+            </div>
+            <div style="width: 200px; word-wrap: break-word">
+              <a :href="item.link">{{ item.link }}</a>
+            </div>
+            <div style="width: 60px; min-width: 60px">
+              {{ item.status === "SUCCESS" ? "Добавлено" : "Идет добавление"}}
+            </div>
+          </div>
+        </div>
     </div>
 </template>
 
@@ -377,7 +401,7 @@ export default {
             selected_project: "",
             project_names: [],
             pdate: "", // 2023-03-15
-
+            addedNewsPapers: [],
             instanceUpload: {
                 res_id: 0,
                 pdate: "",
@@ -424,6 +448,12 @@ export default {
                 }
             }
             this.spinner = true;
+
+            const headers = {
+              'Content-Type': 'multipart/form-data',
+              'Access-Control-Allow-Origin': '*'
+            };
+
             axios
                 .post(
                     `https://newspapers-service.imas.kz/${
@@ -433,12 +463,32 @@ export default {
                     }?res_id=${this.instanceUpload.res_id}&pdate=${
                         this.instanceUpload.pdate
                     }`,
-                    this.file_tab ? formData : this.pdf_link
+                    this.file_tab ? formData : this.pdf_link,
+                    {headers}
                 )
                 .then((response) => {
-                    // Handle the response from the server
-                    this.success_msg = true;
-                    this.success_message = i18n('Газета успешна попала в систему!')
+
+
+                    if(response.data.status === "FOUND") {
+                      this.success_msg = true;
+                      this.success_message = i18n('Газета существует в системе!')
+                    }else if(response.data.status === "SUCCESS") {
+
+                      this.success_msg = true;
+                      this.success_message = i18n('Газета успешна попала в систему!')
+                      this.addedNewsPapers.push({
+                                                poll_id: response.data.poll_id.slice(0, 6),
+                                                'status': "PENDING",
+                                                'link': this.pdf_link
+                      });
+                      this.checkNewsPaper(response.data.poll_id)
+
+                    }else if(response.data.status === "PENDING") {
+
+                      this.success_msg = true;
+                      this.success_message = i18n('Газета в обработке!')
+                    }
+
                     console.log(response);
                 })
                 .catch((error) => {
@@ -456,7 +506,6 @@ export default {
                         this.error_message = i18n("Газета уже есть в системе!");
                     }
                     else if (error.response.status === 405) {
-                        // this.error_message = "Формат газеты оказался неправильным, \nпопробуйте скачать и отправить в виде файла!";
                         this.error_small = true;
                         this.error_message = i18n("Данный формат газеты не поддерживается. Пожалуйста, прикрепите газету в виде pdf-файла.");
                     }
@@ -475,7 +524,8 @@ export default {
                 .then((response) => response.json())
                 .then((data) => {
                     console.log(data);
-                    this.project_names = data;
+                    // фильтрация для удаление неопределенного источника
+                    this.project_names = data.filter((el) => el.res_id !== "145237")
                 });
         },
         selectProject(option, id, name, select_name) {
@@ -602,42 +652,6 @@ export default {
                         this.spinner = false;
                     });
             }
-            // let link = document.querySelector('#link').value;
-            // let title = document.querySelector('#title').value;
-            // let category = parseInt(document.querySelector('#category').value);
-            // let country = parseInt(document.querySelector('#country').value);
-            // let region = parseInt(document.querySelector('#region').value);
-            // let city = parseInt(document.querySelector('#city').value);
-            // if (link != '' && title != '' && category > 0 && country > 0) {
-            //     if (country == 57 && region > 0 && city > 0) {
-            //         console.error(country, region, city);
-            //         return;
-            //     }
-            //     console.log(link, title, category, country, region, city);
-            //     $.ajax({
-            //         url: "/ru/addnews-service/add-new-resource",
-            //         data : {
-            //             resource_name: title,
-            //             resource_url: link,
-            //             category_id: category,
-            //             country_id: country,
-            //             region_id: region,
-            //             city_id: city,
-            //         },
-            //         type : "POST",
-            //         success: function(data){
-            //             console.log(data);
-            //             if (data == 1) {
-            //                 // close_window()
-            //                 console.success('data is ', data);
-            //             }
-            //             // document.querySelector('#iframe').setAttribute('srcdoc', data.html);
-            //         },
-            //         error: function(error){
-            //             console.error(error);
-            //         },
-            //     });
-            // }
         },
         getResourceData(link) {
             this.spinner = true;
@@ -684,6 +698,35 @@ export default {
                 }
             }
         },
+        checkNewsPaper(poll_id) {
+          const intervalId = setInterval(() => {
+            axios.get(`https://newspapers-service.imas.kz/poll_instance/${poll_id}`)
+                .then((response) => {
+                  const {status, result} = response.data;
+                  if (status === "SUCCESS") {
+
+                    this.addedNewsPapers.forEach((element) => {
+                      if(element.poll_id == poll_id.slice(0,6)) {
+                        element.poll_id = result.item_id
+                        element.status = "SUCCESS"
+                      }
+                    })
+
+                    console.log(this.addedNewsPapers)
+
+                    console.log(response.data);
+
+                    this.success_msg = true;
+                    this.success_message = `Газета успешно добавлена в систему - ${result.url}`
+
+                    clearInterval(intervalId)
+                  }
+                })
+                .catch((error) => {
+                  console.error('Ошибка при выполнении запроса:', error);
+                });
+          }, 2000);
+        }
     },
     computed: {
         hasFiles() {
@@ -742,49 +785,6 @@ body {
     width: 214px;
 }
 
-.project_names::-webkit-scrollbar {
-    width: 7px;
-    margin-left: 2px;
-}
-
-.project_names::-webkit-scrollbar-track {
-    margin-left: 2px;
-    background-color: transparent;
-}
-
-.project_names::-webkit-scrollbar-thumb {
-    /*background-color: #eaeaea;*/
-    background-color: rgb(170, 227, 255);
-    /* border-radius: 5px; */
-}
-
-.project_names::-webkit-scrollbar-thumb:hover {
-    /*background-color: #d7d7d7;*/
-    background-color: rgb(109, 166, 221);
-}
-
-.project_names {
-    position: absolute;
-    background: white;
-    padding: 2px;
-    border: 1px solid #000;
-    right: 0;
-    left: 0;
-    margin-top: 5px;
-    max-height: 140px;
-    overflow-y: scroll;
-    user-select: none;
-    z-index: 1;
-}
-
-.project_name {
-    padding: 6px 12px;
-    font-size: 12px;
-}
-
-.project_name:hover {
-    background: rgb(200, 200, 200);
-}
 
 .title {
     font-size: 22px;
@@ -809,13 +809,6 @@ body {
 }
 select.field {
     background: white;
-}
-.field {
-    height: 30px;
-    border: 1px solid rgb(168, 168, 168);
-    border-radius: 3px;
-    padding-left: 5px;
-    padding-right: 5px;
 }
 
 select:focus,
@@ -1055,6 +1048,10 @@ input:focus {
     margin: 0;
     bottom: -10px;
     right: -4px;
+}
+
+.addedPapers {
+  margin-top: 20px;
 }
 
 .warning {

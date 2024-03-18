@@ -33,6 +33,7 @@ const _i18n = {
 
 	'Убедитесть что все поля заполнены!': ['Make sure all fields are filled in!', 'Барлық өрістер толтырылғанына көз жеткізіңіз!'],
 	'Газета уже есть в системе!': ['The newspaper is already in the system!', 'Газет жүйеде қазірдің өзінде бар!'],
+	'Газета существует в системе!': ['The newspaper exists in the system!', 'Газет жүйеде бар!'],
 	'Данный формат газеты не поддерживается. Пожалуйста, прикрепите газету в виде pdf-файла.': ['This newspaper format is not supported. Please attach the newspaper as a pdf file.', 'Бұл газет пішіміне қолдау көрсетілмейді. Газетті pdf файлы ретінде тіркеңіз.'],
 	'Серверная ошибка!': ['Server error!', 'Сервер қатесі!'],
 

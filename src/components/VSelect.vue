@@ -90,6 +90,32 @@ export default {
 
 <style>
 
+.project_names {
+  position: absolute;
+  background: #fff;
+  padding: 2px;
+  border: 1px solid #000;
+  right: 0;
+  left: 0;
+  margin-top: 5px;
+  max-height: 140px;
+  overflow-y: scroll;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  z-index: 1;
+}
+
+.project_name {
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.project_name:hover {
+  background-color: #a5a3a3;
+}
+
 .rotated {
 	transform:rotateX(180deg);
 }
